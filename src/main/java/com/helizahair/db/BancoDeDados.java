@@ -1,11 +1,16 @@
 package com.helizahair.db;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.*;
 
 public class BancoDeDados {
 
-    // Cria o arquivo dados_salao.db na raiz do projeto automaticamente
-    private static final String URL = "jdbc:sqlite:dados_salao.db";
+    private static final String NOME_ARQUIVO = "dados_salao.db";
+    private static final Path CAMINHO_BANCO = prepararArquivoDoBanco();
+    private static final String URL = "jdbc:sqlite:" + CAMINHO_BANCO;
     private static Connection conexao;
     private static final String SQL_CRIAR_AGENDAMENTOS =
             "CREATE TABLE IF NOT EXISTS agendamentos (" +
@@ -37,7 +42,7 @@ public class BancoDeDados {
     public static void inicializar() {
         try (Statement comando = getConexao().createStatement()) {
 
-            System.out.println("Conexao com o banco SQLite estabelecida!");
+            System.out.println("Conexao com o banco SQLite estabelecida em: " + CAMINHO_BANCO);
 
             comando.execute(
                 "CREATE TABLE IF NOT EXISTS procedimentos (" +
@@ -147,5 +152,28 @@ public class BancoDeDados {
         }
         comando.execute("ALTER TABLE agendamentos RENAME TO agendamentos_legado");
         return true;
+    }
+
+    public static Path getCaminhoBanco() {
+        return CAMINHO_BANCO;
+    }
+
+    private static Path prepararArquivoDoBanco() {
+        Path destino = CaminhosAplicacao.diretorioDados().resolve(NOME_ARQUIVO);
+        Path bancoDaVersaoAnterior = Path.of(NOME_ARQUIVO).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(destino.getParent());
+            if (!Files.exists(destino)
+                    && Files.isRegularFile(bancoDaVersaoAnterior)
+                    && !bancoDaVersaoAnterior.equals(destino)) {
+                Files.copy(bancoDaVersaoAnterior, destino, StandardCopyOption.COPY_ATTRIBUTES);
+                System.out.println("Banco anterior copiado para a pasta de dados da aplicação.");
+            }
+            return destino;
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Não foi possível preparar o banco em " + destino + ": " + e.getMessage(), e
+            );
+        }
     }
 }

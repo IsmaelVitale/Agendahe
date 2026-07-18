@@ -18,4 +18,40 @@ jobs:
           java-version: "21"
           cache: maven
       - name: Compilar e testar
-        run: mvn --batch-mode verify
+        run: ./mvnw --batch-mode verify
+
+  package-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Gerar aplicação portátil
+        shell: powershell
+        run: ./scripts/package-windows.ps1 -Type app-image
+      - name: Compactar aplicação
+        shell: powershell
+        run: Compress-Archive -Path 'dist/Agenda Eliza Hair/*' -DestinationPath 'dist/AgendaElizaHair-portable.zip'
+      - name: Instalar WiX Toolset 3
+        shell: powershell
+        run: |
+          choco install wixtoolset --no-progress --yes
+          $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $wix = Get-ChildItem $programFilesX86 -Filter candle.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $wix) { throw 'candle.exe do WiX Toolset não encontrado.' }
+          $wix.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Gerar instalador EXE
+        shell: powershell
+        run: ./scripts/package-windows.ps1 -Type exe
+      - name: Disponibilizar aplicação
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgendaElizaHair-Windows
+          path: |
+            dist/AgendaElizaHair-portable.zip
+            dist/*.exe
