@@ -220,9 +220,32 @@
 }
 .coluna-dia-fechada { -fx-background-color: -cor-fundo-suave; -fx-opacity: 0.85; }
 
-.slot-horario { -fx-fill: transparent; -fx-cursor: hand; }
-.slot-horario:hover { -fx-fill: -cor-rosa-suave; }
-.slot-hora-cheia { -fx-stroke: -cor-borda; -fx-stroke-width: 0.6; }
+.slot-horario {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -cor-borda transparent;
+    -fx-border-width: 0 0 0.45 0;
+    -fx-cursor: hand;
+}
+.slot-horario:hover { -fx-background-color: -cor-rosa-suave; }
+.slot-hora-cheia {
+    -fx-border-color: -cor-borda transparent transparent transparent;
+    -fx-border-width: 0.7 0 0 0;
+}
+.slot-add-btn {
+    -fx-opacity: 0;
+    -fx-min-width: 26;
+    -fx-pref-width: 26;
+    -fx-max-width: 26;
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+    -fx-max-height: 26;
+    -fx-padding: 0;
+    -fx-background-radius: 13;
+    -fx-background-color: -cor-rosa;
+    -fx-text-fill: white;
+    -fx-font-size: 17px;
+}
+.slot-horario:hover .slot-add-btn { -fx-opacity: 1; }
 
 /* ---------- Cards de agendamento ---------- */
 .card-agendamento {
@@ -275,3 +298,6 @@
 
 /* Scroll panes transparentes */
 .scroll-pane, .scroll-pane > .viewport { -fx-background-color: transparent; }
+.scroll-cabecalho, .scroll-cabecalho > .viewport,
+.scroll-horas, .scroll-horas > .viewport,
+.sidebar-scroll, .sidebar-scroll > .viewport { -fx-background-color: -cor-fundo-cartao; }

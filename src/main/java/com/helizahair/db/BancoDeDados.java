@@ -7,6 +7,18 @@ public class BancoDeDados {
     // Cria o arquivo dados_salao.db na raiz do projeto automaticamente
     private static final String URL = "jdbc:sqlite:dados_salao.db";
     private static Connection conexao;
+    private static final String SQL_CRIAR_AGENDAMENTOS =
+            "CREATE TABLE IF NOT EXISTS agendamentos (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+            "cliente TEXT NOT NULL," +
+            "proc_id TEXT," +
+            "data TEXT NOT NULL," +
+            "hora_inicio TEXT NOT NULL," +
+            "hora_fim TEXT NOT NULL," +
+            "valor REAL NOT NULL DEFAULT 0," +
+            "status TEXT NOT NULL DEFAULT 'agendado'," +
+            "FOREIGN KEY (proc_id) REFERENCES procedimentos(id) ON DELETE SET NULL" +
+            ");";
 
     public static Connection getConexao() {
         try {
@@ -37,19 +49,19 @@ public class BancoDeDados {
                 ");"
             );
 
-            comando.execute(
-                "CREATE TABLE IF NOT EXISTS agendamentos (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "cliente TEXT NOT NULL," +
-                "proc_id TEXT," +
-                "data TEXT NOT NULL," +
-                "hora_inicio TEXT NOT NULL," +
-                "hora_fim TEXT NOT NULL," +
-                "valor REAL NOT NULL DEFAULT 0," +
-                "status TEXT NOT NULL DEFAULT 'agendado'," +
-                "FOREIGN KEY (proc_id) REFERENCES procedimentos(id) ON DELETE SET NULL" +
-                ");"
-            );
+            boolean migrarLegado = prepararMigracaoDeAgendamentos(comando);
+            comando.execute(SQL_CRIAR_AGENDAMENTOS);
+            if (migrarLegado) {
+                comando.execute(
+                        "INSERT INTO agendamentos " +
+                        "(id, cliente, proc_id, data, hora_inicio, hora_fim, valor, status) " +
+                        "SELECT id, cliente, NULL, CAST(data_agendamento AS TEXT), " +
+                        "substr(hora_agendamento, 1, 5), " +
+                        "time(substr(hora_agendamento, 1, 5), '+60 minutes'), valor, 'agendado' " +
+                        "FROM agendamentos_legado"
+                );
+                System.out.println("Agendamentos antigos migrados. A tabela agendamentos_legado foi mantida como backup.");
+            }
 
             comando.execute(
                 "CREATE TABLE IF NOT EXISTS fechamentos_caixa (" +
@@ -100,5 +112,40 @@ public class BancoDeDados {
                 }
             }
         }
+    }
+
+    private static boolean prepararMigracaoDeAgendamentos(Statement comando) throws SQLException {
+        boolean tabelaExiste;
+        try (ResultSet rs = comando.executeQuery(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='agendamentos'")) {
+            tabelaExiste = rs.next();
+        }
+        if (!tabelaExiste) {
+            return false;
+        }
+
+        boolean esquemaAtual = false;
+        boolean esquemaLegado = false;
+        try (ResultSet rs = comando.executeQuery("PRAGMA table_info(agendamentos)")) {
+            while (rs.next()) {
+                String coluna = rs.getString("name");
+                esquemaAtual |= "data".equals(coluna);
+                esquemaLegado |= "data_agendamento".equals(coluna);
+            }
+        }
+        if (esquemaAtual || !esquemaLegado) {
+            return false;
+        }
+
+        try (ResultSet rs = comando.executeQuery(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='agendamentos_legado'")) {
+            if (rs.next()) {
+                throw new SQLException(
+                        "Migração pendente: a tabela de backup agendamentos_legado já existe."
+                );
+            }
+        }
+        comando.execute("ALTER TABLE agendamentos RENAME TO agendamentos_legado");
+        return true;
     }
 }

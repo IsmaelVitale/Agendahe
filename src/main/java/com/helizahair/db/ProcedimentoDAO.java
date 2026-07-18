@@ -24,7 +24,9 @@ public class ProcedimentoDAO {
     }
 
     public static void salvar(Procedimento p) {
-        String sql = "INSERT INTO procedimentos (id, nome, duracao_min, preco, cor) VALUES (?,?,?,?,?)";
+        String sql = "INSERT INTO procedimentos (id, nome, duracao_min, preco, cor) VALUES (?,?,?,?,?) " +
+                "ON CONFLICT(id) DO UPDATE SET nome=excluded.nome, duracao_min=excluded.duracao_min, " +
+                "preco=excluded.preco, cor=excluded.cor";
         try (PreparedStatement ps = BancoDeDados.getConexao().prepareStatement(sql)) {
             ps.setString(1, p.getId());
             ps.setString(2, p.getNome());

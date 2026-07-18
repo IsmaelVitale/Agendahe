@@ -5,6 +5,7 @@ import com.helizahair.ui.dialogs.AppointmentDialog;
 import com.helizahair.ui.dialogs.CheckoutDialog;
 import com.helizahair.ui.dialogs.ReportsDialog;
 import com.helizahair.ui.dialogs.SettingsDialog;
+import com.helizahair.util.DateUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -98,6 +99,7 @@ public class MainView {
         grade.setAoAtualizarTotal(total -> totalSemanalLabel.setText(formatarMoeda(total)));
         ScrollPane rolagem = new ScrollPane(sidebar);
         rolagem.setFitToWidth(true);
+        rolagem.setFitToHeight(true);
         rolagem.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         rolagem.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         rolagem.setPrefViewportWidth(280);
@@ -139,7 +141,13 @@ public class MainView {
 
         Button btnNovo = new Button("\uFF0B Novo Agendamento");
         btnNovo.getStyleClass().add("btn-primario");
-        btnNovo.setOnAction(e -> new AppointmentDialog(estado, estado.getDataAtual(), "08:00", null, grade::renderizar).mostrar());
+        btnNovo.setOnAction(e -> new AppointmentDialog(
+                estado,
+                estado.getDataAtual(),
+                DateUtil.minutosParaHora(estado.getMinutoAbertura()),
+                null,
+                grade::renderizar
+        ).mostrar());
 
         header.getChildren().addAll(btnHoje, navSemana, rotuloMes, espacoHeader, btnNovo);
 
@@ -155,8 +163,8 @@ public class MainView {
     }
 
     private void atualizarCabecalho() {
-        LocalDate inicioSemana = com.helizahair.util.DateUtil.inicioDaSemana(estado.getDataAtual());
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMMM yyyy", new Locale("pt", "BR"));
+        LocalDate inicioSemana = DateUtil.inicioDaSemana(estado.getDataAtual());
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yyyy", new Locale("pt", "BR"));
         String texto = inicioSemana.format(fmt);
         rotuloMes.setText(texto.substring(0, 1).toUpperCase() + texto.substring(1));
     }

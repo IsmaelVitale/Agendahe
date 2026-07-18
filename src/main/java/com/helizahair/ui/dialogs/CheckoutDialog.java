@@ -6,6 +6,7 @@ import com.helizahair.model.Agendamento;
 import com.helizahair.model.FechamentoCaixa;
 import com.helizahair.model.Procedimento;
 import com.helizahair.state.AppState;
+import com.helizahair.ui.Estilos;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -45,8 +46,11 @@ public class CheckoutDialog {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Gerenciar Caixa");
         raiz.getStyleClass().add("modal-conteudo");
-        stage.setScene(new Scene(raiz, 760, 620));
+        Scene cena = new Scene(raiz, 760, 620);
+        Estilos.aplicar(cena, estado.getTema());
+        stage.setScene(cena);
         stage.setOnHidden(e -> { if (aoFechar != null) aoFechar.run(); });
+        campoExtras.textProperty().addListener((obs, anterior, atual) -> recalcularTotal());
         if (dataAlvo == null) mostrarSelecao(); else mostrarDetalhe(dataAlvo);
     }
 
@@ -148,7 +152,6 @@ public class CheckoutDialog {
 
         campoExtras.setText(String.format("%.2f", fechado ? ledger.getExtras() : 0.0));
         campoExtras.getStyleClass().add("input-padrao");
-        campoExtras.textProperty().addListener((obs, a, n) -> recalcularTotal());
 
         totalLabel.getStyleClass().add("total-checkout");
 
@@ -160,11 +163,22 @@ public class CheckoutDialog {
         rodapeValores.getStyleClass().add("card-resumo");
         rodapeValores.setPadding(new Insets(16));
 
-        Button btnSalvar = new Button(fechado ? "Atualizar Fechamento" : "Salvar Fechamento");
+        Button btnSalvar = new Button("Salvar Fechamento");
         btnSalvar.getStyleClass().add("btn-verde");
         btnSalvar.setOnAction(e -> salvarFechamento());
 
-        conteudo.getChildren().addAll(topo, listaAgendamentos, rodapeValores, btnSalvar);
+        HBox acoes = new HBox(10);
+        if (fechado) {
+            bloquearCampos(true);
+            Button btnReabrir = new Button("Reabrir Caixa para Edição");
+            btnReabrir.getStyleClass().add("btn-azul");
+            btnReabrir.setOnAction(e -> reabrirCaixa());
+            acoes.getChildren().add(btnReabrir);
+        } else {
+            acoes.getChildren().add(btnSalvar);
+        }
+
+        conteudo.getChildren().addAll(topo, listaAgendamentos, rodapeValores, acoes);
         raiz.setCenter(new ScrollPane(conteudo));
         recalcularTotal();
     }
@@ -210,5 +224,23 @@ public class CheckoutDialog {
                 "Caixa de " + DateUtil.formatarDataBR(dataAlvo) + " validado: R$ " + String.format("%.2f", total),
                 ButtonType.OK);
         ok.showAndWait();
+    }
+
+    private void bloquearCampos(boolean bloquear) {
+        campoExtras.setDisable(bloquear);
+        comboStatus.values().forEach(combo -> combo.setDisable(bloquear));
+    }
+
+    private void reabrirCaixa() {
+        Alert confirmacao = new Alert(Alert.AlertType.CONFIRMATION,
+                "Reabrir este caixa? O dia voltará a aceitar alterações na agenda.",
+                ButtonType.YES, ButtonType.NO);
+        confirmacao.showAndWait().ifPresent(resposta -> {
+            if (resposta == ButtonType.YES) {
+                FechamentoCaixaDAO.reabrir(dataAlvo);
+                estado.notificarMudanca();
+                mostrarDetalhe(dataAlvo);
+            }
+        });
     }
 }

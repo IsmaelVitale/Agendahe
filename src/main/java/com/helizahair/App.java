@@ -2,14 +2,13 @@ package com.helizahair;
 
 import com.helizahair.db.BancoDeDados;
 import com.helizahair.state.AppState;
+import com.helizahair.ui.Estilos;
 import com.helizahair.ui.MainView;
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-
-import java.net.URL;
 
 public class App extends Application {
 
@@ -22,17 +21,8 @@ public class App extends Application {
 
         Scene cena = new Scene(mainView.getRaiz());
 
-        URL css = App.class.getResource("/estilo.css");
-        if (css == null) {
-            throw new IllegalStateException(
-                    "estilo.css não encontrado em src/main/resources"
-            );
-        }
-
-        cena.getStylesheets().add(css.toExternalForm());
-
-        aplicarTema(cena, estado.getTema());
-        estado.aoAlterar(() -> aplicarTema(cena, estado.getTema()));
+        Estilos.aplicar(cena, estado.getTema());
+        estado.aoAlterar(() -> Estilos.aplicarTema(cena, estado.getTema()));
 
         Rectangle2D area = Screen.getPrimary().getVisualBounds();
 
@@ -52,11 +42,6 @@ public class App extends Application {
 
         palco.show();
         palco.centerOnScreen();
-    }
-
-    private void aplicarTema(Scene cena, String tema) {
-        cena.getRoot().getStyleClass().removeIf(c -> c.startsWith("tema-"));
-        cena.getRoot().getStyleClass().add("tema-" + tema);
     }
 
     public static void main(String[] args) {
