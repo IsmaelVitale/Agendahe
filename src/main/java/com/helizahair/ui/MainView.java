@@ -7,11 +7,7 @@ import com.helizahair.ui.dialogs.ReportsDialog;
 import com.helizahair.ui.dialogs.SettingsDialog;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.control.Slider;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 import java.time.LocalDate;
@@ -39,7 +35,7 @@ public class MainView {
 
     public BorderPane getRaiz() { return raiz; }
 
-    private VBox construirSidebar() {
+    private ScrollPane construirSidebar() {
         VBox sidebar = new VBox(22);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPrefWidth(280);
@@ -100,7 +96,14 @@ public class MainView {
                 lblLargura, sliderLargura, espaco, cardResumo);
 
         grade.setAoAtualizarTotal(total -> totalSemanalLabel.setText(formatarMoeda(total)));
-        return sidebar;
+        ScrollPane rolagem = new ScrollPane(sidebar);
+        rolagem.setFitToWidth(true);
+        rolagem.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        rolagem.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        rolagem.setPrefViewportWidth(280);
+        rolagem.getStyleClass().add("sidebar-scroll");
+
+        return rolagem;
     }
 
     private BorderPane construirCentro() {
