@@ -41,4 +41,4 @@ Para gerar um instalador `.exe`, instale o WiX Toolset 3 e execute:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-windows.ps1 -Type exe
 ```
 
-O GitHub Actions também produz automaticamente o arquivo `AgendaElizaHair-portable.zip`, pronto para baixar e extrair no Windows.
+O GitHub Actions produz automaticamente tanto o `AgendaElizaHair-portable.zip` quanto o instalador `.exe`.
