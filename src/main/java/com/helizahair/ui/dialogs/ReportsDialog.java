@@ -4,6 +4,7 @@ import com.helizahair.db.FechamentoCaixaDAO;
 import com.helizahair.model.FechamentoCaixa;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.Estilos;
+import com.helizahair.ui.IdentidadeVisual;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -40,6 +41,7 @@ public class ReportsDialog {
     private void montar() {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Relat\u00F3rio Mensal");
+        IdentidadeVisual.aplicarIcone(stage);
 
         VBox raiz = new VBox(18);
         raiz.getStyleClass().add("modal-conteudo");

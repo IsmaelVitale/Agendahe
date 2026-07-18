@@ -6,6 +6,7 @@ import com.helizahair.service.AgendamentoService;
 import com.helizahair.service.RegraNegocioException;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.Estilos;
+import com.helizahair.ui.IdentidadeVisual;
 import com.helizahair.util.DateUtil;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -50,6 +51,7 @@ public class AppointmentDialog {
     private void montarInterface(LocalDate dataInicial, String horaInicial) {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle(existente == null ? "Novo Agendamento" : "Editar Agendamento");
+        IdentidadeVisual.aplicarIcone(stage);
 
         VBox raiz = new VBox(12);
         raiz.getStyleClass().add("modal-conteudo");

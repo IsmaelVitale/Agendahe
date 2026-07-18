@@ -36,6 +36,11 @@ $targetDir = Join-Path $projectRoot "target"
 $inputDir = Join-Path $targetDir "installer-input"
 $libDir = Join-Path $inputDir "lib"
 $distDir = Join-Path $projectRoot "dist"
+$iconPath = Join-Path $projectRoot "src\main\resources\images\eh-desktop.ico"
+
+if (!(Test-Path $iconPath)) {
+    throw "Ícone do aplicativo não encontrado em: $iconPath"
+}
 
 & (Join-Path $projectRoot "mvnw.cmd") --batch-mode clean package `
     dependency:copy-dependencies "-DincludeScope=runtime" "-DoutputDirectory=$libDir"
@@ -61,6 +66,7 @@ $arguments = @(
     "--main-jar", $jar.Name,
     "--main-class", "com.helizahair.Main",
     "--app-version", $AppVersion,
+    "--icon", $iconPath,
     "--vendor", "Eliza Hair",
     "--description", "Agenda semanal e controle de caixa para salão de beleza"
 )

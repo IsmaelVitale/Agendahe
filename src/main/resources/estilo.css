@@ -1,5 +1,5 @@
 /* ======================================================================
-   BelezaFlow Desktop — folha de estilos JavaFX
+   Agenda Eliza Hair — folha de estilos JavaFX
    Reproduz o esquema de temas (claro / escuro / creme) e a paleta do
    agenda.html original, usando "looked-up colors" do JavaFX CSS
    (equivalente as CSS custom properties --var do HTML).
@@ -76,17 +76,8 @@
     -fx-border-width: 0 1 0 0;
 }
 
-.logo-icone {
-    -fx-background-color: -cor-rosa;
-    -fx-background-radius: 20;
-    -fx-min-width: 40; -fx-min-height: 40;
-    -fx-max-width: 40; -fx-max-height: 40;
-    -fx-alignment: center;
-    -fx-text-fill: white;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-}
-.titulo-app { -fx-text-fill: -cor-texto-principal; -fx-font-size: 20px; -fx-font-weight: 800; }
+.logo-marca { -fx-opacity: 1; }
+.titulo-app { -fx-text-fill: -cor-texto-secundario; -fx-font-size: 13px; -fx-font-weight: 700; }
 
 .rotulo-secao {
     -fx-text-fill: -cor-texto-secundario;

@@ -7,6 +7,7 @@ import com.helizahair.service.RegraNegocioException;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.CorPaleta;
 import com.helizahair.ui.Estilos;
+import com.helizahair.ui.IdentidadeVisual;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -49,6 +50,7 @@ public class SettingsDialog {
     private void montar() {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Configura\u00E7\u00F5es do Sistema");
+        IdentidadeVisual.aplicarIcone(stage);
 
         VBox raiz = new VBox(20);
         raiz.getStyleClass().add("modal-conteudo");
