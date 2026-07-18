@@ -26,7 +26,7 @@ import java.util.function.DoubleConsumer;
 
 public class CalendarGrid {
 
-    private static final double SLOT_HEIGHT = 32;
+    private static final double SLOT_HEIGHT = 45;
     private static final double PX_POR_MINUTO = SLOT_HEIGHT / 30.0;
     private static final double COL_HORA_LARGURA = 60;
 
