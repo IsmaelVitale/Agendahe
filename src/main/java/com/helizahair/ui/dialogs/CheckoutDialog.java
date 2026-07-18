@@ -7,6 +7,7 @@ import com.helizahair.model.FechamentoCaixa;
 import com.helizahair.model.Procedimento;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.Estilos;
+import com.helizahair.ui.IdentidadeVisual;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -45,6 +46,7 @@ public class CheckoutDialog {
         this.aoFechar = aoFechar;
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Gerenciar Caixa");
+        IdentidadeVisual.aplicarIcone(stage);
         raiz.getStyleClass().add("modal-conteudo");
         Scene cena = new Scene(raiz, 760, 620);
         Estilos.aplicar(cena, estado.getTema());

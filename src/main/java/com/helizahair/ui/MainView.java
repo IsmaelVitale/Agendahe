@@ -9,6 +9,7 @@ import com.helizahair.util.DateUtil;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 
 import java.time.LocalDate;
@@ -43,13 +44,13 @@ public class MainView {
         sidebar.setMinWidth(280);
         sidebar.setPadding(new Insets(24));
 
-        HBox logoBox = new HBox(12);
+        VBox logoBox = new VBox(2);
         logoBox.setAlignment(Pos.CENTER_LEFT);
-        Label logoIcone = new Label("\u2702");
-        logoIcone.getStyleClass().add("logo-icone");
-        Label titulo = new Label("BelezaFlow");
+        ImageView logotipo = IdentidadeVisual.criarLogotipo(210);
+        logotipo.getStyleClass().add("logo-marca");
+        Label titulo = new Label(IdentidadeVisual.NOME_APLICACAO);
         titulo.getStyleClass().add("titulo-app");
-        logoBox.getChildren().addAll(logoIcone, titulo);
+        logoBox.getChildren().addAll(logotipo, titulo);
 
         Label lblData = new Label("IR PARA DATA");
         lblData.getStyleClass().add("rotulo-secao");

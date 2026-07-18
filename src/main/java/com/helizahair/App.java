@@ -3,6 +3,7 @@ package com.helizahair;
 import com.helizahair.db.BancoDeDados;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.Estilos;
+import com.helizahair.ui.IdentidadeVisual;
 import com.helizahair.ui.MainView;
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
@@ -30,7 +31,8 @@ public class App extends Application {
         double altura = Math.min(820, area.getHeight() * 0.90);
 
         palco.setScene(cena);
-        palco.setTitle("BelezaFlow Desktop");
+        palco.setTitle(IdentidadeVisual.NOME_APLICACAO);
+        IdentidadeVisual.aplicarIcone(palco);
 
         palco.setFullScreen(false);
         palco.setMaximized(false);
