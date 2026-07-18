@@ -42,3 +42,25 @@ powershell -ExecutionPolicy Bypass -File .\scripts\package-windows.ps1 -Type exe
 ```
 
 O GitHub Actions produz automaticamente tanto o `AgendaElizaHair-portable.zip` quanto o instalador `.exe`.
+
+## Publicar uma versão permanente
+
+Depois de validar as mudanças na `main`, crie e envie uma tag sem reutilizar números anteriores:
+
+```powershell
+git checkout main
+git pull origin main
+git tag v0.1.0-beta.1
+git push origin v0.1.0-beta.1
+```
+
+Tags com sufixo, como `v0.1.0-beta.1`, criam uma pré-versão. Uma tag como `v1.0.0` cria uma versão estável marcada como a mais recente.
+
+O workflow **Publicar versão Windows** gera e anexa permanentemente na página de Releases:
+
+- instalador `AgendaElizaHair-Setup-vX.Y.Z.exe`;
+- pacote `AgendaElizaHair-portable-vX.Y.Z.zip`;
+- arquivo `SHA256SUMS.txt` para verificação de integridade;
+- notas automáticas das alterações desde a versão anterior.
+
+Página de versões: <https://github.com/IsmaelVitale/Agendahe/releases>
