@@ -25,10 +25,10 @@ if ([string]::IsNullOrWhiteSpace($JavaHome) -or !(Test-Path (Join-Path $JavaHome
     throw "JDK 21 não encontrado. Informe -JavaHome ou configure JAVA_HOME para o Temurin 21."
 }
 
-$javaExe = Join-Path $JavaHome "bin\java.exe"
-$javaVersion = (& $javaExe -version 2>&1 | Select-Object -First 1) -join ""
-if ($javaVersion -notmatch 'version "21') {
-    throw "O empacotamento exige JDK 21. Encontrado: $javaVersion"
+$releaseFile = Join-Path $JavaHome "release"
+$javaRelease = if (Test-Path $releaseFile) { Get-Content $releaseFile -Raw } else { "" }
+if ($javaRelease -notmatch 'JAVA_VERSION="21(?:\.|\")') {
+    throw "O empacotamento exige JDK 21. JDK encontrado em: $JavaHome"
 }
 $env:JAVA_HOME = $JavaHome
 
