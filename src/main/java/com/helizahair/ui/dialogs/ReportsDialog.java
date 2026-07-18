@@ -3,6 +3,7 @@ package com.helizahair.ui.dialogs;
 import com.helizahair.db.FechamentoCaixaDAO;
 import com.helizahair.model.FechamentoCaixa;
 import com.helizahair.state.AppState;
+import com.helizahair.ui.Estilos;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -75,7 +76,9 @@ public class ReportsDialog {
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
         raiz.getChildren().addAll(titulo, topo, scroll);
-        stage.setScene(new Scene(raiz, 680, 580));
+        Scene cena = new Scene(raiz, 680, 580);
+        Estilos.aplicar(cena, estado.getTema());
+        stage.setScene(cena);
         carregar();
     }
 

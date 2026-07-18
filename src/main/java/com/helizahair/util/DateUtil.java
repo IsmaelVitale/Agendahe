@@ -18,11 +18,17 @@ public class DateUtil {
     }
 
     public static int horaParaMinutos(String hhmm) {
+        if (hhmm == null || !hhmm.matches("(?:[01]\\d|2[0-3]):[0-5]\\d|24:00")) {
+            throw new IllegalArgumentException("Horário inválido: " + hhmm);
+        }
         String[] partes = hhmm.split(":");
         return Integer.parseInt(partes[0]) * 60 + Integer.parseInt(partes[1]);
     }
 
     public static String minutosParaHora(int totalMin) {
+        if (totalMin == 24 * 60) {
+            return "24:00";
+        }
         int h = (totalMin / 60) % 24;
         int m = totalMin % 60;
         return String.format("%02d:%02d", h, m);

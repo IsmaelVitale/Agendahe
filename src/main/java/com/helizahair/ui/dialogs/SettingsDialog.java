@@ -1,11 +1,12 @@
 package com.helizahair.ui.dialogs;
 
-import com.helizahair.db.AgendamentoDAO;
 import com.helizahair.db.ProcedimentoDAO;
-import com.helizahair.model.Agendamento;
 import com.helizahair.model.Procedimento;
+import com.helizahair.service.ConfiguracaoService;
+import com.helizahair.service.RegraNegocioException;
 import com.helizahair.state.AppState;
 import com.helizahair.ui.CorPaleta;
+import com.helizahair.ui.Estilos;
 import com.helizahair.util.DateUtil;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -13,13 +14,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
-import java.util.List;
 
 public class SettingsDialog {
 
@@ -28,14 +28,17 @@ public class SettingsDialog {
     private final Stage stage = new Stage();
     private final VBox listaProcedimentos = new VBox(6);
 
-    private ComboBox<Integer> comboAbertura;
-    private ComboBox<Integer> comboFechamento;
+    private ComboBox<String> comboAbertura;
+    private ComboBox<String> comboFechamento;
     private final TextField campoNome = new TextField();
     private final ComboBox<Integer> comboDuracao =
             new ComboBox<>(FXCollections.observableArrayList(15, 30, 45, 60, 90, 120, 180));
     private final TextField campoPreco = new TextField();
     private final ComboBox<String> comboCor =
             new ComboBox<>(FXCollections.observableArrayList(CorPaleta.todas().keySet()));
+    private final Button btnSalvarProcedimento = new Button("Adicionar");
+    private final Button btnCancelarEdicao = new Button("Cancelar");
+    private Procedimento procedimentoEmEdicao;
 
     public SettingsDialog(AppState estado, Runnable aoFechar) {
         this.estado = estado;
@@ -64,7 +67,10 @@ public class SettingsDialog {
         for (String tema : new String[]{"light", "dark", "cream"}) {
             Button b = new Button(rotuloTema(tema));
             b.getStyleClass().add("btn-tema");
-            b.setOnAction(e -> estado.setTema(tema));
+            b.setOnAction(e -> {
+                estado.setTema(tema);
+                Estilos.aplicarTema(stage.getScene(), tema);
+            });
             botoesTema.getChildren().add(b);
         }
         blocoTema.getChildren().addAll(lblTema, botoesTema);
@@ -78,12 +84,17 @@ public class SettingsDialog {
 
         comboAbertura = new ComboBox<>();
         comboFechamento = new ComboBox<>();
-        for (int i = 0; i <= 24; i++) {
-            comboAbertura.getItems().add(i);
-            comboFechamento.getItems().add(i);
+        for (int minuto = 0; minuto <= 24 * 60; minuto += 30) {
+            String horario = DateUtil.minutosParaHora(minuto);
+            if (minuto < 24 * 60) {
+                comboAbertura.getItems().add(horario);
+            }
+            if (minuto > 0) {
+                comboFechamento.getItems().add(horario);
+            }
         }
-        comboAbertura.setValue(estado.getHoraAbertura());
-        comboFechamento.setValue(estado.getHoraFechamento());
+        comboAbertura.setValue(DateUtil.minutosParaHora(estado.getMinutoAbertura()));
+        comboFechamento.setValue(DateUtil.minutosParaHora(estado.getMinutoFechamento()));
         comboAbertura.getStyleClass().add("input-padrao");
         comboFechamento.getStyleClass().add("input-padrao");
 
@@ -114,11 +125,19 @@ public class SettingsDialog {
         comboCor.setValue("pink");
         comboCor.getStyleClass().add("input-padrao");
 
-        Button btnAdicionar = new Button("+");
-        btnAdicionar.getStyleClass().add("btn-verde");
-        btnAdicionar.setOnAction(e -> adicionarProcedimento());
+        btnSalvarProcedimento.getStyleClass().add("btn-verde");
+        btnSalvarProcedimento.setOnAction(e -> salvarProcedimento());
+        btnCancelarEdicao.getStyleClass().add("btn-secundario");
+        btnCancelarEdicao.setVisible(false);
+        btnCancelarEdicao.setManaged(false);
+        btnCancelarEdicao.setOnAction(e -> limparFormularioProcedimento());
 
-        HBox formProc = new HBox(8, campoNome, comboDuracao, campoPreco, comboCor, btnAdicionar);
+        campoNome.setPrefWidth(190);
+        comboDuracao.setPrefWidth(85);
+        campoPreco.setPrefWidth(90);
+        comboCor.setPrefWidth(110);
+        FlowPane formProc = new FlowPane(8, 8, campoNome, comboDuracao, campoPreco, comboCor,
+                btnCancelarEdicao, btnSalvarProcedimento);
         renderizarProcedimentos();
         ScrollPane scrollProc = new ScrollPane(listaProcedimentos);
         scrollProc.setFitToWidth(true);
@@ -135,7 +154,9 @@ public class SettingsDialog {
         ScrollPane scrollGeral = new ScrollPane(raiz);
         scrollGeral.setFitToWidth(true);
 
-        stage.setScene(new Scene(scrollGeral, 660, 700));
+        Scene cena = new Scene(scrollGeral, 720, 700);
+        Estilos.aplicar(cena, estado.getTema());
+        stage.setScene(cena);
         stage.setOnHidden(e -> { if (aoFechar != null) aoFechar.run(); });
     }
 
@@ -148,46 +169,47 @@ public class SettingsDialog {
     }
 
     private void salvarHorario() {
-        int novaAbertura = comboAbertura.getValue();
-        int novoFechamento = comboFechamento.getValue();
-        if (novaAbertura >= novoFechamento) {
-            alerta("Abertura deve ser menor que o fechamento.");
-            return;
+        int novaAbertura = DateUtil.horaParaMinutos(comboAbertura.getValue());
+        int novoFechamento = DateUtil.horaParaMinutos(comboFechamento.getValue());
+        try {
+            ConfiguracaoService.validarExpediente(novaAbertura, novoFechamento);
+            estado.setHorario(novaAbertura, novoFechamento);
+            alertaInformativo("Horários da grade atualizados com sucesso!");
+        } catch (RegraNegocioException e) {
+            alerta(e.getMessage());
         }
-
-        List<Agendamento> todos = AgendamentoDAO.listarPorPeriodo("0000-01-01", "9999-12-31");
-        for (Agendamento a : todos) {
-            int ini = DateUtil.horaParaMinutos(a.getHoraInicio());
-            int fim = DateUtil.horaParaMinutos(a.getHoraFim());
-            if (ini < novaAbertura * 60 || fim > novoFechamento * 60) {
-                alerta("N\u00E3o \u00E9 poss\u00EDvel alterar.\nConflito: " + a.getCliente() + " \u00E0s "
-                        + a.getHoraInicio() + " em " + DateUtil.formatarDataBR(a.getData()));
-                return;
-            }
-        }
-        estado.setHorario(novaAbertura, novoFechamento);
-        alerta("Hor\u00E1rios da grade atualizados com sucesso!");
     }
 
-    private void adicionarProcedimento() {
+    private void salvarProcedimento() {
         String nome = campoNome.getText().trim();
         if (nome.isEmpty()) {
             alerta("Informe o nome do servi\u00E7o.");
+            return;
+        }
+        if (comboDuracao.getValue() == null || comboCor.getValue() == null) {
+            alerta("Informe duração e cor do serviço.");
             return;
         }
         double preco;
         try {
             preco = Double.parseDouble(campoPreco.getText().replace(",", "."));
         } catch (Exception e) {
-            preco = 0;
+            alerta("Informe um preço válido.");
+            return;
+        }
+        if (preco < 0) {
+            alerta("O preço não pode ser negativo.");
+            return;
         }
 
-        Procedimento p = new Procedimento("proc_" + System.currentTimeMillis(), nome,
+        String id = procedimentoEmEdicao == null
+                ? "proc_" + System.currentTimeMillis()
+                : procedimentoEmEdicao.getId();
+        Procedimento p = new Procedimento(id, nome,
                 comboDuracao.getValue(), preco, comboCor.getValue());
         ProcedimentoDAO.salvar(p);
         estado.recarregarProcedimentos();
-        campoNome.clear();
-        campoPreco.clear();
+        limparFormularioProcedimento();
         renderizarProcedimentos();
     }
 
@@ -209,11 +231,16 @@ public class SettingsDialog {
             Region esp = new Region();
             HBox.setHgrow(esp, Priority.ALWAYS);
 
+            Button editar = new Button("Editar");
+            editar.getStyleClass().add("btn-secundario");
+            editar.setOnAction(e -> editarProcedimento(p));
+
             Button excluir = new Button("Excluir");
             excluir.getStyleClass().add("btn-perigo");
             excluir.setOnAction(e -> {
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                        "Excluir este procedimento do cat\u00E1logo?", ButtonType.YES, ButtonType.NO);
+                        "Excluir este procedimento do catálogo? Agendamentos antigos serão mantidos como personalizados.",
+                        ButtonType.YES, ButtonType.NO);
                 confirm.showAndWait().ifPresent(resp -> {
                     if (resp == ButtonType.YES) {
                         ProcedimentoDAO.excluir(p.getId());
@@ -223,13 +250,40 @@ public class SettingsDialog {
                 });
             });
 
-            linha.getChildren().addAll(bolinha, lbl, esp, excluir);
+            linha.getChildren().addAll(bolinha, lbl, esp, editar, excluir);
             listaProcedimentos.getChildren().add(linha);
         }
     }
 
     private void alerta(String msg) {
         new Alert(Alert.AlertType.WARNING, msg, ButtonType.OK).showAndWait();
+    }
+
+    private void alertaInformativo(String msg) {
+        new Alert(Alert.AlertType.INFORMATION, msg, ButtonType.OK).showAndWait();
+    }
+
+    private void editarProcedimento(Procedimento procedimento) {
+        procedimentoEmEdicao = procedimento;
+        campoNome.setText(procedimento.getNome());
+        comboDuracao.setValue(procedimento.getDuracaoMin());
+        campoPreco.setText(String.valueOf(procedimento.getPreco()));
+        comboCor.setValue(procedimento.getCor());
+        btnSalvarProcedimento.setText("Salvar");
+        btnCancelarEdicao.setVisible(true);
+        btnCancelarEdicao.setManaged(true);
+        campoNome.requestFocus();
+    }
+
+    private void limparFormularioProcedimento() {
+        procedimentoEmEdicao = null;
+        campoNome.clear();
+        campoPreco.clear();
+        comboDuracao.setValue(30);
+        comboCor.setValue("pink");
+        btnSalvarProcedimento.setText("Adicionar");
+        btnCancelarEdicao.setVisible(false);
+        btnCancelarEdicao.setManaged(false);
     }
 
     public void mostrar() { stage.showAndWait(); }

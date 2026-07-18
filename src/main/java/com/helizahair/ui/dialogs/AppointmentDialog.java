@@ -1,11 +1,11 @@
 package com.helizahair.ui.dialogs;
 
-import com.helizahair.db.AgendamentoDAO;
-import com.helizahair.db.FechamentoCaixaDAO;
 import com.helizahair.model.Agendamento;
-import com.helizahair.model.FechamentoCaixa;
 import com.helizahair.model.Procedimento;
+import com.helizahair.service.AgendamentoService;
+import com.helizahair.service.RegraNegocioException;
 import com.helizahair.state.AppState;
+import com.helizahair.ui.Estilos;
 import com.helizahair.util.DateUtil;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -21,6 +21,8 @@ import java.time.LocalDate;
 
 public class AppointmentDialog {
 
+    private static final String ID_PERSONALIZADO = "__personalizado__";
+
     private final AppState estado;
     private final Agendamento existente;
     private final Runnable aoSalvar;
@@ -33,6 +35,8 @@ public class AppointmentDialog {
     private final TextField campoHoraFim = new TextField();
     private final TextField campoValor = new TextField();
     private final String statusAtual;
+    private final Procedimento personalizado =
+            new Procedimento(ID_PERSONALIZADO, "Personalizado / Outro", 60, 0, "gray");
 
     public AppointmentDialog(AppState estado, LocalDate dataInicial, String horaInicial,
                               Agendamento existente, Runnable aoSalvar) {
@@ -58,6 +62,7 @@ public class AppointmentDialog {
         campoCliente.getStyleClass().add("input-padrao");
 
         comboProcedimento.getItems().addAll(estado.getProcedimentos());
+        comboProcedimento.getItems().add(personalizado);
         comboProcedimento.setPromptText("Selecione um servi\u00E7o...");
         comboProcedimento.setMaxWidth(Double.MAX_VALUE);
         comboProcedimento.getStyleClass().add("input-padrao");
@@ -86,13 +91,23 @@ public class AppointmentDialog {
 
         if (existente != null) {
             campoCliente.setText(existente.getCliente());
-            estado.buscarProcedimento(existente.getProcId()).ifPresent(comboProcedimento::setValue);
+            comboProcedimento.setValue(
+                    estado.buscarProcedimento(existente.getProcId()).orElse(personalizado)
+            );
         }
 
         comboProcedimento.valueProperty().addListener((obs, antigo, novo) -> {
-            if (novo != null) {
+            if (novo != null && !ID_PERSONALIZADO.equals(novo.getId())) {
                 campoValor.setText(String.valueOf(novo.getPreco()));
-                campoHoraFim.setText(DateUtil.somarMinutos(campoHoraInicio.getText(), novo.getDuracaoMin()));
+                atualizarFimAutomatico(novo);
+            } else if (novo != null) {
+                campoValor.clear();
+            }
+        });
+        campoHoraInicio.textProperty().addListener((obs, antigo, novo) -> {
+            Procedimento procedimento = comboProcedimento.getValue();
+            if (procedimento != null && !ID_PERSONALIZADO.equals(procedimento.getId())) {
+                atualizarFimAutomatico(procedimento);
             }
         });
 
@@ -129,7 +144,9 @@ public class AppointmentDialog {
                 grid, botoes
         );
 
-        stage.setScene(new Scene(raiz, 460, 580));
+        Scene cena = new Scene(raiz, 460, 580);
+        Estilos.aplicar(cena, estado.getTema());
+        stage.setScene(cena);
     }
 
     private Label rotulo(String texto) {
@@ -143,29 +160,25 @@ public class AppointmentDialog {
             String inicio = campoHoraInicio.getText().trim();
             String fim = campoHoraFim.getText().trim();
 
-            if (DateUtil.horaParaMinutos(inicio) >= DateUtil.horaParaMinutos(fim)) {
-                alerta("O t\u00E9rmino deve ser posterior ao in\u00EDcio.");
-                return;
-            }
-            if (campoCliente.getText().isBlank()) {
-                alerta("Informe o nome do cliente.");
-                return;
-            }
-
             Agendamento a = existente != null ? existente : new Agendamento();
             a.setCliente(campoCliente.getText().trim());
-            a.setProcId(comboProcedimento.getValue() != null ? comboProcedimento.getValue().getId() : null);
+            Procedimento selecionado = comboProcedimento.getValue();
+            a.setProcId(selecionado == null || ID_PERSONALIZADO.equals(selecionado.getId())
+                    ? null
+                    : selecionado.getId());
             a.setData(DateUtil.formatar(campoData.getValue()));
             a.setHoraInicio(inicio);
             a.setHoraFim(fim);
             a.setValor(Double.parseDouble(campoValor.getText().replace(",", ".")));
             a.setStatus(statusAtual);
 
-            AgendamentoDAO.salvar(a);
+            AgendamentoService.salvar(a);
             estado.notificarMudanca();
             stage.close();
             if (aoSalvar != null) aoSalvar.run();
-        } catch (NumberFormatException ex) {
+        } catch (RegraNegocioException ex) {
+            alerta(ex.getMessage());
+        } catch (NumberFormatException | NullPointerException ex) {
             alerta("Valor inv\u00E1lido.");
         }
     }
@@ -175,10 +188,14 @@ public class AppointmentDialog {
                 "Excluir permanentemente este agendamento?", ButtonType.YES, ButtonType.NO);
         confirm.showAndWait().ifPresent(resp -> {
             if (resp == ButtonType.YES) {
-                AgendamentoDAO.excluir(existente.getId());
-                estado.notificarMudanca();
-                stage.close();
-                if (aoSalvar != null) aoSalvar.run();
+                try {
+                    AgendamentoService.excluir(existente);
+                    estado.notificarMudanca();
+                    stage.close();
+                    if (aoSalvar != null) aoSalvar.run();
+                } catch (RegraNegocioException ex) {
+                    alerta(ex.getMessage());
+                }
             }
         });
     }
@@ -188,13 +205,20 @@ public class AppointmentDialog {
     }
 
     public void mostrar() {
-        if (existente == null) {
-            String dataStr = DateUtil.formatar(campoData.getValue());
-            FechamentoCaixa fech = FechamentoCaixaDAO.buscarPorData(dataStr);
-            if (fech != null && fech.isFechado()) {
-                alerta("Aviso: o caixa deste dia j\u00E1 est\u00E1 fechado.");
-            }
+        String data = existente != null
+                ? existente.getData()
+                : DateUtil.formatar(campoData.getValue());
+        if (AgendamentoService.diaFechado(data)) {
+            alerta("O caixa deste dia está fechado. Use Gerenciar Dia para atualizar ou reabrir o caixa.");
+            return;
         }
         stage.showAndWait();
+    }
+
+    private void atualizarFimAutomatico(Procedimento procedimento) {
+        String inicio = campoHoraInicio.getText();
+        if (inicio != null && inicio.matches("(?:[01]\\d|2[0-3]):[0-5]\\d")) {
+            campoHoraFim.setText(DateUtil.somarMinutos(inicio, procedimento.getDuracaoMin()));
+        }
     }
 }

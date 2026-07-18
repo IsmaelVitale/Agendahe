@@ -19,8 +19,8 @@ public class AppState {
 
     private LocalDate dataAtual = LocalDate.now();
     private String tema = ConfigDAO.get("tema", "light");
-    private int horaAbertura = Integer.parseInt(ConfigDAO.get("hora_abertura", "8"));
-    private int horaFechamento = Integer.parseInt(ConfigDAO.get("hora_fechamento", "20"));
+    private int minutoAbertura = lerHorarioConfigurado("hora_abertura", "8", 8 * 60);
+    private int minutoFechamento = lerHorarioConfigurado("hora_fechamento", "20", 20 * 60);
     private List<Procedimento> procedimentos = ProcedimentoDAO.listarTodos();
 
     private final List<Runnable> ouvintes = new ArrayList<>();
@@ -43,14 +43,14 @@ public class AppState {
         notificar();
     }
 
-    public int getHoraAbertura() { return horaAbertura; }
-    public int getHoraFechamento() { return horaFechamento; }
+    public int getMinutoAbertura() { return minutoAbertura; }
+    public int getMinutoFechamento() { return minutoFechamento; }
 
-    public void setHorario(int abertura, int fechamento) {
-        this.horaAbertura = abertura;
-        this.horaFechamento = fechamento;
-        ConfigDAO.set("hora_abertura", String.valueOf(abertura));
-        ConfigDAO.set("hora_fechamento", String.valueOf(fechamento));
+    public void setHorario(int aberturaEmMinutos, int fechamentoEmMinutos) {
+        this.minutoAbertura = aberturaEmMinutos;
+        this.minutoFechamento = fechamentoEmMinutos;
+        ConfigDAO.set("hora_abertura", String.valueOf(aberturaEmMinutos));
+        ConfigDAO.set("hora_fechamento", String.valueOf(fechamentoEmMinutos));
         notificar();
     }
 
@@ -68,4 +68,19 @@ public class AppState {
 
     /** Usado apos operacoes de CRUD de agendamentos para forcar nova renderizacao. */
     public void notificarMudanca() { notificar(); }
+
+    private static int lerHorarioConfigurado(String chave, String valorPadrao, int minutoPadrao) {
+        String valor = ConfigDAO.get(chave, valorPadrao);
+        try {
+            if (valor.contains(":")) {
+                String[] partes = valor.split(":");
+                return Integer.parseInt(partes[0]) * 60 + Integer.parseInt(partes[1]);
+            }
+            int numero = Integer.parseInt(valor);
+            // Compatibilidade com a versão anterior, que armazenava somente a hora (8, 20 etc.).
+            return numero <= 24 ? numero * 60 : numero;
+        } catch (RuntimeException e) {
+            return minutoPadrao;
+        }
+    }
 }

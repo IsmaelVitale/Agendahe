@@ -39,6 +39,16 @@ public class FechamentoCaixaDAO {
         }
     }
 
+    public static void reabrir(String data) {
+        String sql = "UPDATE fechamentos_caixa SET fechado = 0 WHERE data = ?";
+        try (PreparedStatement ps = BancoDeDados.getConexao().prepareStatement(sql)) {
+            ps.setString(1, data);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao reabrir fechamento: " + e.getMessage(), e);
+        }
+    }
+
     /** anoMes no formato "yyyy-MM" */
     public static List<FechamentoCaixa> listarFechadosDoMes(String anoMes) {
         List<FechamentoCaixa> lista = new ArrayList<>();
